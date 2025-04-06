@@ -54,7 +54,7 @@ int main() {
     doctor* root = create("Dr.Snehal B Shinde","Chief Medical Officer","Administration");
     root->left = create("Dr. Orange", "Head of Surgery", "Surgery");
     root->right = create("Dr. Blue", "Head of Cardiology", "Cardiology");
-    root->left->left = create("Dr. Aditya", "Surgeon", "Surgery");
+    root->left->left = create("Dr. Aditya", "Gynac", "Female-Gynac");
     root->left->right = create("Dr. Tushar", "Surgeon", "Brain Surgery");
     root->right->left = create("Dr. Raveena", "Cardiologist", "Cardiology");
     root->right->right = create("Dr. Aryan", "Cardiologist", "Cardiology");
