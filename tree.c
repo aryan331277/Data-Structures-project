@@ -20,15 +20,15 @@ doctor* create(const char* name, const char* title, const char* department) {
     newdoc->right = NULL;
     return newdoc;
 }
-void preOrderTraversal(doctor* root,int level) {
+void preorderTraversal(doctor* root,int level) {
     if (root == NULL) return;
     int i;
     for (i=0;i<level;i++) {
         printf(" ");
     }
     printf("+-- %s (%s, %s)\n", root->name, root->title, root->department);
-    preOrderTraversal(root->left,level+1);
-    preOrderTraversal(root->right,level+1);
+    preorderTraversal(root->left,level+1);
+    preorderTraversal(root->right,level+1);
 }
 void inorder(doctor* root,int level) {
     if (root==NULL) return;
@@ -59,7 +59,7 @@ int main() {
     root->right->left = create("Dr. Raveena", "Cardiologist", "Cardiology");
     root->right->right = create("Dr. Aryan", "Cardiologist", "Cardiology");
     printf("\nPre-order Traversal:\n");
-    preOrderTraversal(root, 0);
+    preorderTraversal(root, 0);
     printf("\nIn-order Traversal:\n");
     inorder(root,0);
     printf("\nPost-order Traversal:\n");
