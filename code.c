@@ -1,50 +1,51 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+
+#define MAX_BEDS 50
+#define MAX_HISTORY 100
+#define FILE_NAME "patients.txt"
 
 typedef struct {
     int bedID;
     int isOccupied;
     char patient[100];
-}Bed;
-Bed beds[50];
-void initializebeds() {
-    for (int i=0;i<50;i++) {
-        beds[i].bedID=i+1;
-        beds[i].isOccupied=0;
-        strcpy(beds[i].patient,"None");
+} Bed;
+
+Bed beds[MAX_BEDS];
+
+void initializeBeds() {
+    for (int i = 0; i < MAX_BEDS; i++) {
+        beds[i].bedID = i + 1;
+        beds[i].isOccupied = 0;
+        strcpy(beds[i].patient, "None");
     }
 }
 
-void assignbed() {
-    char name[100];
-    printf("Enter patient name: ");
-    scanf("%s",name);
-    for (int i = 0; i < 50; i++){
-        if (beds[i].isOccupied==0){
+void assignBed(char name[]) {
+    for (int i = 0; i < MAX_BEDS; i++) {
+        if (beds[i].isOccupied == 0) {
             beds[i].isOccupied = 1;
             strcpy(beds[i].patient, name);
-            printf("Patient '%s' assigned to bed ID %d\n",name,beds[i].bedID);
+            printf("Patient '%s' assigned to bed ID %d\n", name, beds[i].bedID);
             return;
         }
     }
     printf("No available beds right now.\n");
 }
 
-
-void showtotal() {
+void showTotal() {
     int occupied = 0;
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < MAX_BEDS; i++) {
         if (beds[i].isOccupied) {
             occupied++;
         }
     }
     printf("\n--- Bed Status ---\n");
-    printf("Total Beds     : %d\n",50);
-    printf("Occupied Beds  : %d\n",occupied);
-    printf("Available Beds : %d\n",50-occupied);
+    printf("Total Beds     : %d\n", MAX_BEDS);
+    printf("Occupied Beds  : %d\n", occupied);
+    printf("Available Beds : %d\n", MAX_BEDS - occupied);
 }
-#define MAX_HISTORY 100
-#define FILE_NAME "patients.txt"
 
 // Medical History Record Node
 typedef struct Record {
@@ -65,10 +66,6 @@ typedef struct Patient {
 
 Patient* head = NULL;
 
-// Function declarations
-void savePatientsToFile();
-Patient* findPatient(char name[]);
-
 // Stack operations
 void addMedicalRecord(Patient* patient, char record[]) {
     Record* newRecord = (Record*)malloc(sizeof(Record));
@@ -84,7 +81,7 @@ void getLatestRecord(Patient* patient) {
         return;
     }
     Record* temp = patient->history;
-    printf("🩺 Latest Record: %s\n", temp->data);
+    printf("\U0001FA7A Latest Record: %s\n", temp->data);
     patient->history = temp->next;
     free(temp);
 }
@@ -102,7 +99,6 @@ void viewAllHistory(Patient* patient) {
     }
 }
 
-// Patient management
 void savePatientsToFile() {
     FILE* file = fopen(FILE_NAME, "w");
     if (!file) {
@@ -147,7 +143,24 @@ void loadPatientsFromFile() {
     char name[50], disease[50];
     int age, severity;
     while (fscanf(file, "%s %d %s %d", name, &age, disease, &severity) != EOF) {
-        registerPatient(name, age, disease, severity);
+        Patient* newPatient = (Patient*)malloc(sizeof(Patient));
+        strcpy(newPatient->name, name);
+        newPatient->age = age;
+        strcpy(newPatient->disease, disease);
+        newPatient->severity = severity;
+        newPatient->next = NULL;
+        newPatient->prev = NULL;
+        newPatient->history = NULL;
+
+        if (!head) {
+            head = newPatient;
+        } else {
+            Patient* temp = head;
+            while (temp->next)
+                temp = temp->next;
+            temp->next = newPatient;
+            newPatient->prev = temp;
+        }
     }
     fclose(file);
 }
@@ -182,12 +195,19 @@ void deletePatient(char name[]) {
         return;
     }
 
-    // Remove from list
+    // Free bed if assigned
+    for (int i = 0; i < MAX_BEDS; i++) {
+        if (strcmp(beds[i].patient, name) == 0) {
+            beds[i].isOccupied = 0;
+            strcpy(beds[i].patient, "None");
+            break;
+        }
+    }
+
     if (temp->prev) temp->prev->next = temp->next;
     if (temp->next) temp->next->prev = temp->prev;
     if (temp == head) head = temp->next;
 
-    // Free history stack
     Record* r = temp->history;
     while (r) {
         Record* del = r;
@@ -199,10 +219,53 @@ void deletePatient(char name[]) {
     printf("Patient Deleted.\n");
 }
 
+typedef struct doctor {
+    char name[50];
+    char title[50];
+    char department[50];
+    struct doctor* left;
+    struct doctor* right;
+} doctor;
+
+doctor* create(const char* name, const char* title, const char* department) {
+    doctor* newdoc = (doctor*)malloc(sizeof(doctor));
+    strncpy(newdoc->name, name, 49);
+    strncpy(newdoc->title, title, 49);
+    strncpy(newdoc->department, department, 49);
+    newdoc->name[49] = '\0';
+    newdoc->title[49] = '\0';
+    newdoc->department[49] = '\0';
+    newdoc->left = NULL;
+    newdoc->right = NULL;
+    return newdoc;
+}
+
+void preorderTraversal(doctor* root, int level) {
+    if (root == NULL) return;
+    for (int i = 0; i < level; i++) printf("  ");
+    printf("+-- %s (%s, %s)\n", root->name, root->title, root->department);
+    preorderTraversal(root->left, level + 1);
+    preorderTraversal(root->right, level + 1);
+}
+
+void viewDoctorHierarchy() {
+    doctor* root = create("Dr.Snehal B Shinde", "Chief Medical Officer", "Administration");
+    root->left = create("Dr. Orange", "Head of Surgery", "Surgery");
+    root->right = create("Dr. Blue", "Head of Cardiology", "Cardiology");
+    root->left->left = create("Dr. Aditya", "Paediatric Surgeon", "Surgery");
+    root->left->right = create("Dr. Tushar", "Surgeon", "Brain Surgery");
+    root->right->left = create("Dr. Raveena", "Cardiologist", "Cardiology");
+    root->right->right = create("Dr. Aryan", "Cardiologist", "Cardiology");
+
+    printf("\nPre-order Traversal:\n");
+    preorderTraversal(root, 0);
+}
+
 void menu() {
     int choice;
     char name[50], disease[50], record[200];
     int age, severity;
+    Patient* p;
 
     while (1) {
         printf("\n Menu:\n");
@@ -214,31 +277,25 @@ void menu() {
         printf("6. View Latest Record\n");
         printf("7. Exit\n");
         printf("8. Assign Bed\n");
-        
+
         printf("Enter choice: ");
         scanf("%d", &choice);
         getchar();
-
-        Patient* p;
 
         switch (choice) {
             case 1:
                 printf("Name: ");
                 fgets(name, sizeof(name), stdin);
                 name[strcspn(name, "\n")] = 0;
-
                 printf("Age: ");
                 scanf("%d", &age);
                 getchar();
-
                 printf("Disease: ");
                 fgets(disease, sizeof(disease), stdin);
                 disease[strcspn(disease, "\n")] = 0;
-
                 printf("Severity (1-15): ");
                 scanf("%d", &severity);
                 getchar();
-
                 registerPatient(name, age, disease, severity);
                 break;
 
@@ -293,102 +350,33 @@ void menu() {
                 }
                 break;
 
-            
             case 7:
                 printf("Exiting...\n");
                 return;
+
             case 8:
-            printf("Patient Name: ");
-            fgets(name, sizeof(name), stdin);
-            name[strcspn(name, "\n")] = 0;
-            p = findPatient(name);
-            if (p) {
-                printf("Let me reconfirm the name:\n");
-                assignbed();
-                showtotal();
-            } else {
-                printf("Patient not found.\n");
-            }
-            break;
+                printf("Patient Name: ");
+                fgets(name, sizeof(name), stdin);
+                name[strcspn(name, "\n")] = 0;
+                p = findPatient(name);
+                if (p) {
+                    assignBed(name);
+                    showTotal();
+                } else {
+                    printf("Patient not found.\n");
+                }
+                break;
 
-
-
-            
             default:
-            printf("Invalid choice.\n");
+                printf("Invalid choice.\n");
         }
     }
 }
-typedef struct doctor {
-    char name[50];
-    char title[50];
-    char department[50];
-    struct doctor*left; 
-    struct doctor*right; 
-}doctor;
-doctor* create(const char* name, const char* title, const char* department) {
-    doctor* newdoc = (doctor*)malloc(sizeof(doctor));
-    strncpy(newdoc->name, name, 49);
-    strncpy(newdoc->title, title, 49);
-    strncpy(newdoc->department, department, 49);
-    newdoc->name[49] = '\0';
-    newdoc->title[49] = '\0';
-    newdoc->department[49] = '\0';
-    newdoc->left = NULL;
-    newdoc->right = NULL;
-    return newdoc;
-}
-void preorderTraversal(doctor* root,int level) {
-    if (root == NULL) return;
-    int i;
-    for (i=0;i<level;i++) {
-        printf(" ");
-    }
-    printf("+-- %s (%s, %s)\n", root->name, root->title, root->department);
-    preorderTraversal(root->left,level+1);
-    preorderTraversal(root->right,level+1);
-}
-void inorder(doctor* root,int level) {
-    if (root==NULL) return;
-    inorder(root->left,level+1);
-    int i;
-    for(i=0;i<level;i++){
-    	printf("  ");
-	}
-    printf("+-- %s (%s,%s)\n", root->name, root->title, root->department);
-    inorder(root->right,level+1);
-}
-void postorder(doctor* root,int level){
-    if (root == NULL) return;
-    postorder(root->left,level+1);
-    postorder(root->right,level+1);
-    int i;
-    for(i=0;i<level;i++){
-    	printf("  ");
-	}
-    printf("+-- %s (%s,%s)\n", root->name, root->title, root->department);
-}
-void view_doctor_heirarchy (){
-    doctor* root = create("Dr.Snehal B Shinde","Chief Medical Officer","Administration");
-    root->left = create("Dr. Orange", "Head of Surgery", "Surgery");
-    root->right = create("Dr. Blue", "Head of Cardiology", "Cardiology");
-    root->left->left = create("Dr. Aditya", "Paediatric Surgeon", "Surgery");
-    root->left->right = create("Dr. Tushar", "Surgeon", "Brain Surgery");
-    root->right->left = create("Dr. Raveena", "Cardiologist", "Cardiology");
-    root->right->right = create("Dr. Aryan", "Cardiologist", "Cardiology");
-    printf("\nPre-order Traversal:\n");
-    preorderTraversal(root, 0);
-    printf("\nIn-order Traversal:\n");
-    inorder(root,0);
-    printf("\nPost-order Traversal:\n");
-    postorder(root,0);
-}
-
 
 int main() {
-initializebeds();
-loadPatientsFromFile();
+    initializeBeds();
+    loadPatientsFromFile();
     menu();
-view_doctor_heirarchy();
-      return 0;
-  }
+    viewDoctorHierarchy();
+    return 0;
+}
